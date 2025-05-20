@@ -102,8 +102,8 @@ EOF
         echo $SENHA | sudo -S touch /etc/resolv.conf
         echo $SENHA | sudo -S tee /etc/resolv.conf > /dev/null <<EOF
 nameserver 192.168.0.1
-nameserver www.grau.local
-nameserver ftp.grau.local
+www.grau.local 192.168.0.1
+ftp.grau.local 192.168.0.1
 EOF
 
         echo "Configuração concluída com sucesso!"
@@ -197,8 +197,8 @@ EOF
         echo $SENHA | sudo -S touch /etc/resolv.conf
         echo $SENHA | sudo -S tee /etc/resolv.conf > /dev/null <<EOF
 nameserver 192.168.0.1
-nameserver www.grau.local
-nameserver ftp.grau.local
+www.grau.local 192.168.0.1
+ftp.grau.local 192.168.0.1
 EOF
 
         echo "Configuração concluída com sucesso!"
