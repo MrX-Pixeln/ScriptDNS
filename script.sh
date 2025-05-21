@@ -108,6 +108,7 @@ EOF
 
         echo "Configuração concluída com sucesso!"
         ;;
+
     2)
         echo "Você escolheu configurar DNS no openSUSE."
         
@@ -122,7 +123,7 @@ EOF
         echo $SENHA | sudo -S zypper refresh
         echo $SENHA | sudo -S zypper update -y
 
-        echo "Instalando BIND9..."
+        echo "Instalando BIND..."
         echo $SENHA | sudo -S zypper install bind -y
 
         echo "Configurando IP fixo 192.168.0.1/24 na interface $INTERFACE..."
@@ -130,66 +131,55 @@ EOF
         echo $SENHA | sudo -S ip addr add 192.168.0.1/24 dev $INTERFACE
         echo $SENHA | sudo -S ip link set $INTERFACE up
 
-        echo "Configurando zonas no named.conf..."
-        echo $SENHA | sudo -S tee /etc/named/named.conf > /dev/null <<EOF
-// Zona Direta
+        echo "Configurando zonas no named.conf.local..."
+        echo $SENHA | sudo -S tee /etc/named/named.conf.local > /dev/null <<EOF
 zone "grau.local" {
     type master;
     file "/var/lib/named/db.grau.local";
 };
 
-// Zona Reversa
-zone "192.in-addr.arpa" {
+zone "0.168.192.in-addr.arpa" {
     type master;
     file "/var/lib/named/db.192";
 };
 EOF
 
-        echo "Copiando arquivos de zona padrão..."
-        echo $SENHA | sudo -S cp /var/lib/named/etc/named.local /var/lib/named/db.grau.local
-        echo $SENHA | sudo -S cp /var/lib/named/etc/named.127 /var/lib/named/db.192
+        echo "Incluindo named.conf.local no named.conf, se ainda não estiver..."
+        if ! grep -q 'include "/etc/named/named.conf.local";' /etc/named.conf; then
+            echo 'include "/etc/named/named.conf.local";' | sudo tee -a /etc/named.conf
+        fi
 
-        echo "Editando arquivo db.grau.local..."
+        echo "Criando arquivo de zona direta..."
         echo $SENHA | sudo -S tee /var/lib/named/db.grau.local > /dev/null <<EOF
-;
-; BIND data file for local loopback interface
-;
 \$TTL    604800
 @       IN      SOA     grau.local. root.grau.local. (
                               2         ; Serial
-                              604800    ; Refresh
-                              86400     ; Retry
-                              2419200   ; Expire
-                              604800 )  ; Negative Cache TTL
+                         604800         ; Refresh
+                          86400         ; Retry
+                        2419200         ; Expire
+                         604800 )       ; Negative Cache TTL
 
-;
 @       IN      NS      grau.local.
 @       IN      A       192.168.0.1
 www     IN      A       192.168.0.1
 ftp     IN      A       192.168.0.1
 EOF
 
-        echo "Editando arquivo db.192..."
+        echo "Criando arquivo de zona reversa..."
         echo $SENHA | sudo -S tee /var/lib/named/db.192 > /dev/null <<EOF
-;
-; BIND data file for local loopback interface
-;
 \$TTL    604800
 @       IN      SOA     grau.local. root.grau.local. (
                               2         ; Serial
-                              604800    ; Refresh
-                              86400     ; Retry
-                              2419200   ; Expire
-                              604800 )  ; Negative Cache TTL
+                         604800         ; Refresh
+                          86400         ; Retry
+                        2419200         ; Expire
+                         604800 )       ; Negative Cache TTL
 
-;
 @       IN      NS      grau.local.
-@       IN      A       192.168.0.1
-www     IN      A       192.168.0.1
-ftp     IN      A       192.168.0.1
+1       IN      PTR     grau.local.
 EOF
 
-        echo "Reiniciando o serviço BIND9..."
+        echo "Reiniciando o serviço named..."
         echo $SENHA | sudo -S systemctl restart named
 
         echo "Substituindo o arquivo resolv.conf..."
@@ -197,11 +187,9 @@ EOF
         echo $SENHA | sudo -S touch /etc/resolv.conf
         echo $SENHA | sudo -S tee /etc/resolv.conf > /dev/null <<EOF
 nameserver 192.168.0.1
-www.grau.local 192.168.0.1
-ftp.grau.local 192.168.0.1
 EOF
 
-        echo "Configuração concluída com sucesso!"
+        echo "Configuração concluída com sucesso no openSUSE!"
         ;;
     *)
         echo "Opção inválida. Saindo..."
